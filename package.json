@@ -1,0 +1,32 @@
+{
+  "name": "sudoku_solver",
+  "version": "1.0.0",
+  "main": "sudoku.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jeremiah Zucker",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-preset-es2015": "6.3.13",
+    "babel-preset-react": "6.3.13",
+    "babelify": "7.2.0",
+    "browserify": "12.0.1",
+    "gulp": "3.9.1",
+    "gulp-util": "3.0.7",
+    "vinyl-source-stream": "1.1.0"
+  },
+  "dependencies": {
+    "react": "0.14.5",
+    "react-dom": "0.14.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sugarmanz/SudokuSolver-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sugarmanz/SudokuSolver-js/issues"
+  },
+  "homepage": "https://github.com/sugarmanz/SudokuSolver-js#readme",
+  "description": ""
+}
