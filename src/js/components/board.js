@@ -11,9 +11,9 @@ export default class Board extends React.Component {
 
 		return (
 			<div className="board-group-row">
-				<Group onCellClick={this.props.onCellClick} groupID={x++} values={this.props.values} clickedCell={this.props.clickedCell}/>
-				<Group onCellClick={this.props.onCellClick} groupID={x++} values={this.props.values} clickedCell={this.props.clickedCell}/>
-				<Group onCellClick={this.props.onCellClick} groupID={x++} values={this.props.values} clickedCell={this.props.clickedCell}/>
+				<Group onCellClick={this.props.onCellClick} groupID={x++} values={this.props.values} selectedCell={this.props.selectedCell}/>
+				<Group onCellClick={this.props.onCellClick} groupID={x++} values={this.props.values} selectedCell={this.props.selectedCell}/>
+				<Group onCellClick={this.props.onCellClick} groupID={x++} values={this.props.values} selectedCell={this.props.selectedCell}/>
 			</div>
 		);
 	}

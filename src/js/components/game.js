@@ -1,25 +1,67 @@
 import React from 'react';
 import Board from '../components/board';
 
+const POSSIBLE_VALUES = [1,2,3,4,5,6,7,8,9];
+
 class Cell {
 
-	constructor(x, y, value) {
+	constructor(x, y, value, dispatch) {
 		this.x = x;
 		this.y = y;
 		this.value = value;
+		this.possibleValues = (value == null ? [...POSSIBLE_VALUES] : []);
+		this.dispatch = dispatch;
 	}
 
-	setValue(value, callback) {
-		this.value = value;
+	setValue(value, force) {
+		if (typeof(value) === 'string')
+			value = parseInt(value);
+		if (!value && this.possibleValues.length == 1)
+			value = this.possibleValues[0];
+
+		if (this.possibleValues.indexOf(value) > -1 || force === true) {
+			this.value = value;
+			this.possibleValues = (value == null ? [...POSSIBLE_VALUES] : []);
+
+			if (this.dispatch)
+				this.dispatch({
+					type: 'updatecells'
+				});
+
+			return true;
+		}
+		return false;
 	}
 
 	getValue() {
 		return this.value;
 	}
 
+	removePossibleValue(possibleValue, setIfPossible) {
+		let change = false;
+
+		if (!this.value) {
+			let index = this.possibleValues.indexOf(possibleValue);
+			if (index > -1) {
+				this.possibleValues.splice(index, 1);
+				change = true;
+			}
+
+			if (setIfPossible && this.possibleValues.length == 1) {
+				this.setValue(this.possibleValues[0]);
+				change = true;
+			}
+		}
+
+		return change;
+	}
+
+	getPossibleValues() {
+		return this.possibleValues;
+	}
+
 }
 
-const POSSIBLE_VALUES = [1,2,3,4,5,6,7,8,9];
 export default class Game extends React.Component {
 	constructor(props) {
 		super(props);
@@ -31,12 +73,12 @@ export default class Game extends React.Component {
 			for (let j in values[i]) {
 				let y = Math.floor(count / 9);
 				let x = count++ % 9;
-				values[y][x] = new Cell(x, y, this.props.values[x][y]);
+				values[y][x] = new Cell(y, x, this.props.values[x][y], this.props.store.dispatch);
 			}
 		}
 
 		this.state = {
-			currCell: null,
+			selectedCell: null,
 			values: values 
 
 			// [
@@ -74,6 +116,12 @@ export default class Game extends React.Component {
 			// 	// [null,null,null,null,null,null,8   ,null,null]
 			// ]
 		}
+	}
+
+	componentDidMount() {
+		this.unsub = this.props.store.subscribe(() => {
+			this.setState(this.props.store.getState());
+		});
 	}
 
 	getFirstEmptyCell() {
@@ -163,6 +211,8 @@ export default class Game extends React.Component {
 	}
 
 	dfs() {
+		console.info("Starting DFS.");
+
 		// Check for completed, valid board
 		if (!this.isValid())
 			return false;
@@ -184,10 +234,6 @@ export default class Game extends React.Component {
 			// Call dfs on new values
 			emptyCell.setValue(value);
 
-			this.setState({
-				values: this.state.values
-			});
-
 			// If success, return success
 			if (this.dfs())
 				return true;
@@ -200,59 +246,138 @@ export default class Game extends React.Component {
 		return false;
 	}
 
-	solve() {
-		let finished = false;
-		while (!finished) {
-			break;
+	// TODO: Implement a system in which updating a cell value will trigger the related cells to
+	//		 re-evaluate their possibleValues. This could improve the overall efficiency of the
+	//		 algorithm and ultimately elimate the need for a long loop to perform calculations.
+	//		 One possible (good) side-effect would be allowing React enough resources to render
+	//		 the changes in real-time.
+	eliminateChoices(line) {
+		let change = false;
+
+		// Set cells that only have a single possibility
+		for (let cellIndex in line) {
+			let cell = line[cellIndex];
+			if (cell.getPossibleValues().length == 1)
+				cell.setValue();
 		}
+
+		// Find all values set in the current line/group
+		let lineValues = [];
+		for (let cellIndex in line) {
+			let cell = line[cellIndex];
+			if (cell.getValue())
+				lineValues.push(cell.getValue());
+		}
+
+		// Remove all the values found in the line/group from the possible values
+		for (let cellIndex in line) {
+			let cell = line[cellIndex];
+			for (let valueIndex in lineValues)
+				change |= cell.removePossibleValue(lineValues[valueIndex]);
+		}
+
+		// Get a count for all the possible values in the current line/group
+		let possibleCount = new Array(9).fill(0);
+		for (let cellIndex in line) {
+			let possibleValues = line[cellIndex].getPossibleValues();
+			for (let possibleIndex in possibleValues) {
+				possibleCount[possibleValues[possibleIndex]]++;
+			}
+		}
+
+		// Determine if any of those possiblities occur only once
+		let singles = [];
+		for (let possibleIndex in possibleCount) {
+			if (possibleCount[possibleIndex] == 1)
+				singles.push(possibleIndex);
+		}
+
+		// For all possibilities that occur only once in the line/group, set the value
+		for (let cellIndex in line) {
+			let cell = line[cellIndex];
+			for (let possibleIndex in singles) {
+				let value = singles[possibleIndex];
+				change |= cell.setValue(value); // Note: the cell will only set if it is included in the possible values
+			}
+		}
+
+		return change;
+	}
+
+	getAllLinesAndGroupsAsLines() {
+		return [...this.getColumns(),
+				...this.getRows(),
+				...this.getGroupsAsLines()];
+	}
+
+	solve() {
+		console.info("Starting logical solve.");
+
+		let finished = false;
+		let changed = true;
+		while (!finished && changed) {
+			changed = false;
+			if (this.isFinished() && this.isValid())
+				finished = true;
+			else
+				changed |= this.solveStep();
+		}
+
+		if (!finished)
+			finished |= this.dfs();
+
+		return finished;
+	}
+
+	solveStep() {
+		let changed = false;
+
+		let lines = this.getAllLinesAndGroupsAsLines();
+		for (let lineIndex in lines)
+			changed |= this.eliminateChoices(lines[lineIndex]);
+
+		return changed;
 	}
 
 	onSolveClick() {
 		this.solveButton.disabled = true;
-		this.solveButton.innerHTML = 'Solving...';
 		setTimeout(() => {
-			if (this.dfs())
+			this.solveButton.innerHTML = 'Solving...';
+			if (this.solve())
 				this.solveButton.innerHTML = 'Solved! :)'
 			else
 				this.solveButton.innerHTML = 'Unsolvable! :('
-		}, 1);
+		}, 100);
 	}
 
 	onCellClick(event) {
-		let clicked = event.target;
+		let newSelectedCell = (this.state.selectedCell != event.target ? event.target : null);
 
-		if (this.state.currCell)
-			this.state.currCell.classList.remove('cell-focused');
-
-		let newCurrCell = null;
-		if (this.state.currCell != clicked) {
-			newCurrCell = clicked;
-			newCurrCell.classList.add('cell-focused');
-		}
-
-		this.setState({
-			currCell: newCurrCell
+		this.props.store.dispatch({
+			type: 'cellselected',
+			cell: newSelectedCell
 		});
 	}
 
-	getClickedCell() {
-		if (this.state.currCell)
-			return {
-				x: this.state.currCell.getAttribute('x'),
-				y: this.state.currCell.getAttribute('y')
-			};
-
-		return {
+	getSelectedCell() {
+		let selectedCell = {
 			x: null,
 			y: null
 		};
+
+		if (this.state.selectedCell) {
+			selectedCell.x = this.state.selectedCell.getAttribute('x');
+			selectedCell.y = this.state.selectedCell.getAttribute('y');
+		}
+
+		return selectedCell;
 	}
 
 	render() {
 		return (
 			<div className="game">
 				<div className="game-board">
-					<Board values={this.state.values} onCellClick={::this.onCellClick} clickedCell={this.getClickedCell()}/>
+					<Board values={this.state.values} onCellClick={::this.onCellClick} selectedCell={this.getSelectedCell()}/>
 				</div>
 				<button className="solve-button" onClick={::this.onSolveClick} ref={(button) => {this.solveButton = button;}}>Solve</button>
 			</div>

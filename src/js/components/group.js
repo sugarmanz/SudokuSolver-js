@@ -16,9 +16,9 @@ export default class Group extends React.Component {
 
 		return (
 			<div className="group-row">
-				<Cell onCellClick={this.props.onCellClick} clickedCell={this.props.clickedCell} value={this.props.values[x][y]} x={x++} y={y}/>
-				<Cell onCellClick={this.props.onCellClick} clickedCell={this.props.clickedCell} value={this.props.values[x][y]} x={x++} y={y}/>
-				<Cell onCellClick={this.props.onCellClick} clickedCell={this.props.clickedCell} value={this.props.values[x][y]} x={x++} y={y}/>
+				<Cell onCellClick={this.props.onCellClick} selectedCell={this.props.selectedCell} value={this.props.values[x][y]} x={x++} y={y}/>
+				<Cell onCellClick={this.props.onCellClick} selectedCell={this.props.selectedCell} value={this.props.values[x][y]} x={x++} y={y}/>
+				<Cell onCellClick={this.props.onCellClick} selectedCell={this.props.selectedCell} value={this.props.values[x][y]} x={x++} y={y}/>
 			</div>
 		);
 	}

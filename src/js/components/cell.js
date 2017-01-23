@@ -22,12 +22,12 @@ export default class Cell extends React.Component {
 	}
 
 	getClasses() {
-		let sameX = (this.props.clickedCell.x == this.props.x ? 1 : 0);
-		let sameY = (this.props.clickedCell.y == this.props.y ? 1 : 0);
+		let sameX = (this.props.selectedCell.x == this.props.x ? 1 : 0);
+		let sameY = (this.props.selectedCell.y == this.props.y ? 1 : 0);
 
 		let sum = sameX + sameY;
 		let className = 'cell' + (sum == 2 ? ' cell-focused' : (sum == 1 ? ' row-focused' : ''));
-		
+
 		return className;
 	}
 

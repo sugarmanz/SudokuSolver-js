@@ -4,7 +4,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Game from './components/game';
 
-// import { createStore } from 'redux';
+import { createStore } from 'redux';
 
 Object.defineProperties(Array.prototype, {
     count: {
@@ -40,18 +40,21 @@ const easyValues = [
 ];
 
 const defaultState = {
-	values: defaultValues
+	values: defaultValues,
+	selectedCell: null
 };
 
-// function reducer(state=defaultState, action) {
-// 	switch (action.type) {
-// 		case 'updatecells':
-// 			return {
-// 				values: action.values
-// 			};
-// 		default:
-// 			return state;
-// 	}
-// };
+function reducer(state=defaultState, action) {
+	switch (action.type) {
+		case 'updatecells':
+			return {};
+		case 'cellselected':
+			return {
+				selectedCell: action.cell
+			};
+		default:
+			return state;
+	}
+};
 
-ReactDOM.render(<Game values={easyValues}/>, document.getElementById('main'));
+ReactDOM.render(<Game store={createStore(reducer)} values={easyValues}/>, document.getElementById('main'));
