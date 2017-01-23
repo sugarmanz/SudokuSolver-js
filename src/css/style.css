@@ -1,0 +1,87 @@
+body {
+  font: 14px "Century Gothic", Futura, sans-serif;
+  margin: 20px;
+}
+
+ol, ul {
+  padding-left: 30px;
+}
+
+.board-group-row:after .group-row:after {
+  clear: both;
+  content: "";
+  display: table;
+}
+
+.status {
+  margin-bottom: 10px;
+}
+
+.cell {
+  background: #fff;
+  border: 1px solid #999;
+  float: left;
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 34px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: center;
+  width: 34px;
+}
+
+.cell:focus {
+  outline: none;
+}
+
+.kbd-navigation {
+  background: #ddd;
+}
+
+.row-focused, .group-focused {
+  background: yellow;
+}
+
+.cell-focused {
+  background: gold;
+}
+
+.game .board-group-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.group {
+  border: 2px solid #999;
+}
+
+.game-info {
+  margin-left: 20px;
+}
+
+.solve-button {
+  margin: 10px;
+  width: calc(100% - 20px);
+}
+
+.game {
+  display: inline-block;
+}
+
+#main {
+  display: flex;
+  justify-content: center;
+
+  -moz-user-select: -moz-none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+
+   /*
+     Introduced in IE 10.
+     See http://ie.microsoft.com/testdrive/HTML5/msUserSelect/
+   */
+  -ms-user-select: none;
+  user-select: none;
+}
