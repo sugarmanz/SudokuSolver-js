@@ -93,8 +93,8 @@ export default class Game extends React.Component {
 	getFirstEmptyCell() {
 		for (let y in this.state.values) {
 			for (let x in this.state.values[y]) {
-				if (!this.state.values[y][x].getValue())
-					return this.state.values[y][x];
+				if (!this.state.values[x][y].getValue())
+					return this.state.values[x][y];
 			}
 		}
 		return null;
@@ -176,6 +176,23 @@ export default class Game extends React.Component {
 		return !this.getFirstEmptyCell();
 	}
 
+	dfsStep() {
+		if (!this.isValid())
+			return false;
+
+		let {cell, possibleValues} = this.dfsStack[this.dfsStack.length - 1];
+
+		while (possibleValues.length > 0) {
+			let value = possibleValues.pop();
+			cell.setValue(value, true);
+			if (this.isValid())
+				return true;
+		}
+
+		cell.setValue(null, true);
+		return false;
+	}
+
 	dfs() {
 		this.dfsCount++;
 		
@@ -250,7 +267,7 @@ export default class Game extends React.Component {
 		for (let cellIndex in line) {
 			let cell = line[cellIndex];
 			if (cell.getPossibleValues().length == 1)
-				cell.setValue();
+				change |= cell.setValue();
 		}
 
 		// Find all values set in the current line/group
@@ -302,14 +319,79 @@ export default class Game extends React.Component {
 				...this.getGroupsAsLines()];
 	}
 
+	dfsPromise() {
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				if (this.isFinished() && this.isValid())
+					resolve('Finished!');
+				else {
+					if (this.dfsStep())
+						this.dfsStack.push({
+							cell: this.getFirstEmptyCell(),
+							possibleValues: [...POSSIBLE_VALUES]
+						});
+					else
+						this.dfsStack.pop();
+
+					if (this.dfsStack.length == 0)
+						reject('Unsolvable!');
+					else
+						resolve('dfs');
+				}
+			}, 0);
+
+		}).then(resp => {
+			if (resp === 'dfs')
+				return this.dfsPromise();
+
+			return resp;
+		});
+	}
+
+	solvePromise() {
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				if (this.isFinished() && this.isValid())
+					resolve('Finished!');
+				else
+					if (this.solveStep())
+						resolve('logic');
+					else
+						resolve('dfs');
+			}, 0);
+		}).then(resp => {
+			switch (resp) {
+				case 'logic':
+					return this.solvePromise();
+				case 'dfs':
+					this.dfsStack = [{
+						cell: this.getFirstEmptyCell(),
+						possibleValues: [...POSSIBLE_VALUES]
+					}];
+					return this.dfsPromise();
+				default:
+					return resp;
+			}
+		});
+	}
+
 	solve() {
-		if (this.isFinished() && this.isValid())
-			return true;
-		else
-			if (this.solveStep())
-				setTimeout(::this.solve, 0);
-			else
-				setTimeout(::this.dfs, 0);
+		return this.solvePromise().then(resp => {
+			if (resp === 'logic')
+				this.solve();
+			return resp
+		}).catch(err => {
+			console.error(err);
+			throw err;
+		});
+
+		// if (this.isFinished() && this.isValid())
+		// 	return true;
+		// else
+		// 	if (this.solveStep())
+		// 		setTimeout(::this.solve, 0);
+		// 	else
+		// 		setTimeout(::this.dfs, 0);
 	}
 
 	solveStep() {
@@ -324,14 +406,27 @@ export default class Game extends React.Component {
 
 	onSolveClick() {
 		this.solveButton.disabled = true;
+		this.solveButton.innerHTML = 'Solving...';
+		let start = performance.now();
 		setTimeout(() => {
-			this.solveButton.innerHTML = 'Solving...';
-			console.info("Starting logical solve.");
-			if (this.solve())
-				this.solveButton.innerHTML = 'Solved! :)'
-			else
-				this.solveButton.innerHTML = 'Unsolvable! :('
+			this.solve().then((resp) => {
+				this.solveButton.innerHTML = resp;
+				this.solveButton.style.backgroudColor = 'green';
+			}, (err) => {
+				this.solveButton.innerHTML = err;
+				this.solveButton.style.backgroudColor = 'red';
+			}).then(() => {
+				console.info(`Time: ${performance.now() - start}`);
+			});
 		}, 100);
+		// setTimeout(() => {
+		// 	this.solveButton.innerHTML = 'Solving...';
+		// 	console.info("Starting logical solve.");
+		// 	if (this.solve())
+		// 		this.solveButton.innerHTML = 'Solved! :)'
+		// 	else
+		// 		this.solveButton.innerHTML = 'Unsolvable! :('
+		// }, 100);
 	}
 
 	onCellClick(event) {
