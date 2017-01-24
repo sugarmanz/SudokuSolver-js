@@ -13,13 +13,12 @@ class Cell {
 		this.dispatch = dispatch;
 	}
 
-	setValue(value, force) {
+	setValue(value=this.possibleValues[0], force=false) {
+		// console.log(`Changing value ${this.value} to ${value}`);
 		if (typeof(value) === 'string')
 			value = parseInt(value);
-		if (!value && this.possibleValues.length == 1)
-			value = this.possibleValues[0];
 
-		if (this.possibleValues.indexOf(value) > -1 || force === true) {
+		if (this.possibleValues.indexOf(value) > -1 || value == null || force === true) {
 			this.value = value;
 			this.possibleValues = (value == null ? [...POSSIBLE_VALUES] : []);
 
@@ -27,7 +26,7 @@ class Cell {
 				this.dispatch({
 					type: 'updatecells'
 				});
-
+			setTimeout(() => {}, 5);
 			return true;
 		}
 		return false;
@@ -67,7 +66,7 @@ export default class Game extends React.Component {
 		super(props);
 
 		let count = 0;
-		let values = new Array(9).fill(null); //fill(new Array(9).fill(null));
+		let values = new Array(9).fill(null);
 		for (let i in values) {
 			values[i] = new Array(9).fill(null);
 			for (let j in values[i]) {
@@ -77,44 +76,11 @@ export default class Game extends React.Component {
 			}
 		}
 
+		this.dfsCount = 0;
+
 		this.state = {
 			selectedCell: null,
-			values: values 
-
-			// [
-			// 	// Puzzle Empty
-			// 	// [null,null,null,null,null,null,null,null,null],
-			// 	// [null,null,null,null,null,null,null,null,null],
-			// 	// [null,null,null,null,null,null,null,null,null],
-			// 	// [null,null,null,null,null,null,null,null,null],
-			// 	// [null,null,null,null,null,null,null,null,null],
-			// 	// [null,null,null,null,null,null,null,null,null],
-			// 	// [null,null,null,null,null,null,null,null,null],
-			// 	// [null,null,null,null,null,null,null,null,null],
-			// 	// [null,null,null,null,null,null,null,null,null]
-
-			// 	// Puzzle Easy
-			// 	[9,   null,null,null,2,   null,null,null,null],
-			// 	[7,   null,1,   null,null,4,   null,null,8   ],
-			// 	[null,3,   2,   null,7,   null,null,4,   null],
-			// 	[null,null,null,6,   null,7,   8,   null,null],
-			// 	[null,8,   null,null,null,null,null,7,   null],
-			// 	[null,null,6,   5,   null,1,   null,null,null],
-			// 	[null,4,   null,null,6,   null,5,   8,   null],
-			// 	[5,   null,null,4,   null,null,6,   null,9   ],
-			// 	[null,null,null,null,1,   null,null,null,7   ]
-
-			// 	// Puzzle Eleven Star
-			// 	// [8   ,null,null,null,null,null,null,null,null],
-			// 	// [null,null,7   ,5   ,null,null,null,null,9   ],
-			// 	// [null,3   ,null,null,null,null,1   ,8   ,null],
-			// 	// [null,6   ,null,null,null,1   ,null,5   ,null],
-			// 	// [null,null,9   ,null,4   ,null,null,null,null],
-			// 	// [null,null,null,7   ,5   ,null,null,null,null],
-			// 	// [null,null,2   ,null,7   ,null,null,null,4   ],
-			// 	// [null,null,null,null,null,3   ,6   ,1   ,null],
-			// 	// [null,null,null,null,null,null,8   ,null,null]
-			// ]
+			values: values
 		}
 	}
 
@@ -183,7 +149,7 @@ export default class Game extends React.Component {
 		let groups = this.getGroups();
 
 		for (let groupIndex in groups)
-			groupsAsLine.push([].concat.apply([], groups[groupIndex]));
+			groupsAsLine.push([].concat(...groups[groupIndex]));
 
 		return groupsAsLine;
 	}
@@ -211,38 +177,64 @@ export default class Game extends React.Component {
 	}
 
 	dfs() {
-		console.info("Starting DFS.");
-
+		this.dfsCount++;
+		
+		// console.log("Call");
 		// Check for completed, valid board
-		if (!this.isValid())
+		if (!this.isValid())// && !console.log("Not valid"))
 			return false;
-		else if (this.isFinished())
+		else if (this.isFinished() && !console.log("Finished"))
+			return true;
+
+		// Find all null cells (to revert if failure)
+		let nullCells = []
+		// for (let i in this.state.values)
+		// 	for (let j in this.state.values)
+		// 		if (this.state.values[i][j].getValue() == null)
+		// 			nullCells.push(this.state.values[i][j]);
+
+		// // Try logic
+		// for (let i in this.state.values)
+		// 	for (let j in this.state.values[i])
+		// 		this.state.values[i][j].possibleValues = [...POSSIBLE_VALUES];
+		// while (this.solveStep()) {}
+
+		// Check completion again
+		if (this.isFinished() && !console.log("Finished"))
 			return true;
 
 		// Get first empty cell
-		let emptyCell = this.getFirstEmptyCell(self);
-
-		// Copy values to dfs_history state
-
-
+		let emptyCell = this.getFirstEmptyCell();
+		console.log(`Trying cell: ${emptyCell.x}, ${emptyCell.y}`)
 		// Loop through possible values for the 'first empty cell'
 		let possibleValues = [...POSSIBLE_VALUES];
 		while (possibleValues.length > 0) {
-			let value = possibleValues.pop();
-			// console.log(`Trying value: ${value}`);
 
 			// Call dfs on new values
-			emptyCell.setValue(value);
+			let value = possibleValues.pop();
 
-			// If success, return success
+			console.log(`Trying value: ${value}`);
+			if (!emptyCell.setValue(value, true))
+				continue;
+
+			// If success, return success\
 			if (this.dfs())
 				return true;
+			else
+				emptyCell.setValue(null);
 		}
 
 		// Undo
-		emptyCell.setValue(null);
+		while (nullCells.length > 0)
+			nullCells.pop().setValue(null);
+		// emptyCell.setValue(null);
+		// this.props.store.dispatch({
+		// 	type: 'undo',
+		// 	values: copy.values
+		// });
 
 		// Return failure
+		// console.log("Exhausted values...");
 		return false;
 	}
 
@@ -311,22 +303,13 @@ export default class Game extends React.Component {
 	}
 
 	solve() {
-		console.info("Starting logical solve.");
-
-		let finished = false;
-		let changed = true;
-		while (!finished && changed) {
-			changed = false;
-			if (this.isFinished() && this.isValid())
-				finished = true;
+		if (this.isFinished() && this.isValid())
+			return true;
+		else
+			if (this.solveStep())
+				setTimeout(::this.solve, 0);
 			else
-				changed |= this.solveStep();
-		}
-
-		if (!finished)
-			finished |= this.dfs();
-
-		return finished;
+				setTimeout(::this.dfs, 0);
 	}
 
 	solveStep() {
@@ -343,6 +326,7 @@ export default class Game extends React.Component {
 		this.solveButton.disabled = true;
 		setTimeout(() => {
 			this.solveButton.innerHTML = 'Solving...';
+			console.info("Starting logical solve.");
 			if (this.solve())
 				this.solveButton.innerHTML = 'Solved! :)'
 			else

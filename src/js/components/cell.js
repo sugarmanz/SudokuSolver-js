@@ -18,6 +18,8 @@ export default class Cell extends React.Component {
 	}
 
 	renderValue() {
+		if (this.props.value && !this.props.value.getValue)
+			console.log(this.props.value);
 		return (this.props.value ? this.props.value.getValue() : '');
 	}
 
