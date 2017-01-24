@@ -61,9 +61,9 @@ ol, ul {
   margin-left: 20px;
 }
 
-.solve-button {
+.solve-button, .reset-button {
   margin: 10px;
-  width: calc(100% - 20px);
+  width: calc(50% - 20px);
 }
 
 .game {

@@ -65,6 +65,15 @@ export default class Game extends React.Component {
 	constructor(props) {
 		super(props);
 
+		let values = this.initialize();
+
+		this.state = {
+			selectedCell: null,
+			values: values
+		}
+	}
+
+	initialize() {
 		let count = 0;
 		let values = new Array(9).fill(null);
 		for (let i in values) {
@@ -76,12 +85,7 @@ export default class Game extends React.Component {
 			}
 		}
 
-		this.dfsCount = 0;
-
-		this.state = {
-			selectedCell: null,
-			values: values
-		}
+		return values;
 	}
 
 	componentDidMount() {
@@ -452,12 +456,23 @@ export default class Game extends React.Component {
 		return selectedCell;
 	}
 
+	onResetClick() {
+		this.state.values = this.initialize();
+		this.solveButton.innerHTML = 'Solve';
+		this.solveButton.disabled = false;
+
+		this.props.store.dispatch({
+			type: 'updatecells'
+		});
+	}
+
 	render() {
 		return (
 			<div className="game">
 				<div className="game-board">
 					<Board values={this.state.values} onCellClick={::this.onCellClick} selectedCell={this.getSelectedCell()}/>
 				</div>
+				<button className="reset-button" onClick={::this.onResetClick} ref={(button) => {this.resetButton = button;}}>Reset</button>
 				<button className="solve-button" onClick={::this.onSolveClick} ref={(button) => {this.solveButton = button;}}>Solve</button>
 			</div>
 		);
