@@ -24,11 +24,19 @@ export default class Cell extends React.Component {
 	}
 
 	getClasses() {
-		let sameX = (this.props.selectedCell.x == this.props.x ? 1 : 0);
-		let sameY = (this.props.selectedCell.y == this.props.y ? 1 : 0);
+		let x = this.props.x;
+		let y = this.props.y;
+		let selX = this.props.selectedCell.x;
+		let selY = this.props.selectedCell.y;
+
+		let sameX = (selX == x ? 1 : 0);
+		let sameY = (selY == y ? 1 : 0);
 
 		let sum = sameX + sameY;
 		let className = 'cell' + (sum == 2 ? ' cell-focused' : (sum == 1 ? ' row-focused' : ''));
+
+		if (!sum && selX !== null && x - (x % 3) == selX - (selX % 3) && y - (y % 3) == selY - (selY % 3))
+			className += ' group-focused';
 
 		return className;
 	}

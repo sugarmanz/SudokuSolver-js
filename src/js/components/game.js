@@ -420,7 +420,7 @@ export default class Game extends React.Component {
 				this.solveButton.innerHTML = err;
 				this.solveButton.style.backgroudColor = 'red';
 			}).then(() => {
-				console.info(`Time: ${performance.now() - start}`);
+				console.info(`Time: ${(performance.now() - start) / 1000} seconds`);
 			});
 		}, 100);
 		// setTimeout(() => {
