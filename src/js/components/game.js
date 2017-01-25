@@ -201,38 +201,35 @@ export default class Game extends React.Component {
 				cell.resetPossibleValues();
 	}
 
+	nullifyPromise(nullCells) {
+		return new Promise((resolve, reject) => {
+			for (let nullCell of nullCells)
+				setTimeout(() => {
+					if (nullCell.getValue())
+						nullCell.setValue(null);
+				}, 0);
+			resolve();
+		}).then(resp => {
+			// if (nullCells.length != 0)
+			// 	return nullifyPromise(nullCells);
+			// else
+				return resp;
+		});
+	}
+
 	dfsStep() {
 		let {cell, possibleValues, nullCells} = this.dfsStack[this.dfsStack.length - 1];
-		let needToClearNullCells = true;
 
 		if (!this.isValid() || !cell)
 			return false;
 
 		while (possibleValues.length > 0) {
-			let value = (Math.random() >= 0.5 ? possibleValues.shift() : possibleValues.pop());
-
-			if (needToClearNullCells) {
-				for (let nullCell of nullCells)
-					if (nullCell.getValue())
-						nullCell.setValue(null);
-				needToClearNullCells = false;
-			}
+			let value = (Math.random() >= 0.5 ? possibleValues.shift() : possibleValues.shift());
 
 			cell.setValue(value, true);
 
-			if (this.isValid()) {
-
-				// this.resetPossibleValues();
-
-				// while (this.solveStep()) {}
-
-				// if (!this.isValid()) {
-				// 	needToClearNullCells = true;
-				// 	continue;
-				// }
-
+			if (this.isValid())
 				return true;
-			}
 		}
 
 		return false;
@@ -371,21 +368,10 @@ export default class Game extends React.Component {
 				else {
 					let res;
 
-					if (this.dfsStep()) {
-						// this.dfsStack.push({
-						// 	cell: this.getFirstEmptyCell(),
-						// 	possibleValues: [...POSSIBLE_VALUES],
-						// 	nullCells: this.getNullCells()
-						// });
-
+					if (this.dfsStep())
 						res = 'logic';
-					} else {
-						for (let nullCell of this.dfsStack.pop().nullCells)
-							if (nullCell.getValue())
-								nullCell.setValue(null);
-
-						res = 'dfs'
-					}
+					else
+						res = 'dfs';
 
 					if (this.dfsStack.length == 0)
 						reject('Unsolvable!');
@@ -400,18 +386,11 @@ export default class Game extends React.Component {
 					this.resetPossibleValues();
 					return this.solvePromise();
 				case 'dfs':
-					// this.dfsStack.push({
-					// 	cell: this.getFirstEmptyCell(),
-					// 	possibleValues: [...POSSIBLE_VALUES],
-					// 	nullCells: this.getNullCells()
-					// });
-					return this.dfsPromise();
+					this.dfsStack.pop();
 				case 'Invalid!':
-					for (let nullCell of this.dfsStack[this.dfsStack.length - 1].nullCells)
-						if (nullCell.getValue())
-							nullCell.setValue(null);
-
-					return this.dfsPromise();
+					return this.nullifyPromise(this.dfsStack[this.dfsStack.length - 1].nullCells).then(resp => {
+						return this.dfsPromise();
+					});
 				default:
 					return resp;
 			}
@@ -446,10 +425,9 @@ export default class Game extends React.Component {
 					});
 					return this.dfsPromise();
 				case 'Invalid!':
-					for (let nullCell of this.dfsStack[this.dfsStack.length - 1].nullCells)
-						if (nullCell.getValue())
-							nullCell.setValue(null);
-					return this.dfsPromise();
+					return this.nullifyPromise(this.dfsStack[this.dfsStack.length - 1].nullCells).then(resp => {
+						return this.dfsPromise();
+					});
 				default:
 					return resp;
 			}
