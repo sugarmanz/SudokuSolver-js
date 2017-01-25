@@ -222,14 +222,14 @@ export default class Game extends React.Component {
 
 			if (this.isValid()) {
 
-				this.resetPossibleValues();
+				// this.resetPossibleValues();
 
-				while (this.solveStep()) {}
+				// while (this.solveStep()) {}
 
-				if (!this.isValid()) {
-					needToClearNullCells = true;
-					continue;
-				}
+				// if (!this.isValid()) {
+				// 	needToClearNullCells = true;
+				// 	continue;
+				// }
 
 				return true;
 			}
@@ -364,43 +364,73 @@ export default class Game extends React.Component {
 	dfsPromise() {
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
-				if (this.isFinished() && this.isValid())
+				if (!this.isValid())
+					resolve('Invalid!');
+				else if (this.isFinished())
 					resolve('Finished!');
 				else {
-					if (this.dfsStep())
-						this.dfsStack.push({
-							cell: this.getFirstEmptyCell(),
-							possibleValues: [...POSSIBLE_VALUES],
-							nullCells: this.getNullCells()
-						});
-					else
+					let res;
+
+					if (this.dfsStep()) {
+						// this.dfsStack.push({
+						// 	cell: this.getFirstEmptyCell(),
+						// 	possibleValues: [...POSSIBLE_VALUES],
+						// 	nullCells: this.getNullCells()
+						// });
+
+						res = 'logic';
+					} else {
 						for (let nullCell of this.dfsStack.pop().nullCells)
 							if (nullCell.getValue())
 								nullCell.setValue(null);
 
+						res = 'dfs'
+					}
+
 					if (this.dfsStack.length == 0)
 						reject('Unsolvable!');
 					else
-						resolve('dfs');
+						resolve(res);
 				}
 			}, 0);
 
 		}).then(resp => {
-			if (resp === 'dfs')
-				return this.dfsPromise();
+			switch (resp) {
+				case 'logic':
+					this.resetPossibleValues();
+					return this.solvePromise();
+				case 'dfs':
+					// this.dfsStack.push({
+					// 	cell: this.getFirstEmptyCell(),
+					// 	possibleValues: [...POSSIBLE_VALUES],
+					// 	nullCells: this.getNullCells()
+					// });
+					return this.dfsPromise();
+				case 'Invalid!':
+					for (let nullCell of this.dfsStack[this.dfsStack.length - 1].nullCells)
+						if (nullCell.getValue())
+							nullCell.setValue(null);
 
-			return resp;
+					return this.dfsPromise();
+				default:
+					return resp;
+			}
 		});
 	}
 
 	solvePromise() {
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
-				if (this.isFinished() && this.isValid())
+				if (!this.isValid())
+					resolve('Invalid!');
+				else if (this.isFinished())
 					resolve('Finished!');
 				else
 					if (this.solveStep())
-						resolve('logic');
+						if (this.isValid())
+							resolve('logic');
+						else
+							resolve('Invalid!');
 					else
 						resolve('dfs');
 			}, 0);
@@ -409,11 +439,16 @@ export default class Game extends React.Component {
 				case 'logic':
 					return this.solvePromise();
 				case 'dfs':
-					this.dfsStack = [{
+					this.dfsStack.push({
 						cell: this.getFirstEmptyCell(),
 						possibleValues: [...POSSIBLE_VALUES],
 						nullCells: this.getNullCells()
-					}];
+					});
+					return this.dfsPromise();
+				case 'Invalid!':
+					for (let nullCell of this.dfsStack[this.dfsStack.length - 1].nullCells)
+						if (nullCell.getValue())
+							nullCell.setValue(null);
 					return this.dfsPromise();
 				default:
 					return resp;
@@ -422,9 +457,10 @@ export default class Game extends React.Component {
 	}
 
 	solve() {
+		this.dfsStack = [];
 		return this.solvePromise().then(resp => {
 			if (resp === 'logic')
-				this.solve();
+				return this.solvePromise();
 			return resp
 		}).catch(err => {
 			console.error(err);
