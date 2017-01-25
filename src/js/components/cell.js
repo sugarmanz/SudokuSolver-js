@@ -38,6 +38,9 @@ export default class Cell extends React.Component {
 		if (!sum && selX !== null && x - (x % 3) == selX - (selX % 3) && y - (y % 3) == selY - (selY % 3))
 			className += ' group-focused';
 
+		if (this.props.error)
+			className += ' cell-error';
+
 		return className;
 	}
 

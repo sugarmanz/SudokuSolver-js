@@ -11,9 +11,12 @@ class Cell {
 		this.value = value;
 		this.possibleValues = (value == null ? [...POSSIBLE_VALUES] : []);
 		this.dispatch = dispatch;
+		this.error = null;
 	}
 
 	setValue(value=this.possibleValues[0], force=false) {
+		if (this.value == value)
+			return false;
 		// console.log(`Changing value ${this.value} to ${value}`);
 		if (typeof(value) === 'string')
 			value = parseInt(value);
@@ -26,7 +29,7 @@ class Cell {
 				this.dispatch({
 					type: 'updatecells'
 				});
-			setTimeout(() => {}, 5);
+
 			return true;
 		}
 		return false;
@@ -34,6 +37,18 @@ class Cell {
 
 	getValue() {
 		return this.value;
+	}
+
+	setError(err) {
+		this.error = err;
+	}
+
+	getError() {
+		return this.error;
+	}
+
+	resetPossibleValues() {
+		this.possibleValues = (this.value == null ? [...POSSIBLE_VALUES] : []);
 	}
 
 	removePossibleValue(possibleValue, setIfPossible) {
@@ -160,8 +175,19 @@ export default class Game extends React.Component {
 
 	isLineValid(line) {
 		for (let valIndex in POSSIBLE_VALUES)
-			if (line.count(POSSIBLE_VALUES[valIndex], (x) => x.getValue()) > 1)
+			if (line.count(POSSIBLE_VALUES[valIndex], (x) => x.getValue()) > 1) {
+				line.forEach((cell) => {
+					cell.setError(true);
+				});
+				// console.log(line.map(cell => {
+				// 	return cell.getValue();
+				// }));
 				return false;
+			}
+
+		line.forEach((cell) => {
+			cell.setError(false);
+		});
 
 		return true;
 	}
@@ -181,19 +207,71 @@ export default class Game extends React.Component {
 	}
 
 	dfsStep() {
-		if (!this.isValid())
+		let {cell, possibleValues, nullCells} = this.dfsStack[this.dfsStack.length - 1];
+		if (!this.isValid()) {
+			nullCells.forEach(nullCell => {
+				if (nullCell.getValue())
+					nullCell.setValue(null);
+			});
+			return false;
+		}
+		if (!cell) 
 			return false;
 
-		let {cell, possibleValues} = this.dfsStack[this.dfsStack.length - 1];
+		nullCells.forEach(nullCell => {
+			if (nullCell.getValue())
+				nullCell.setValue(null);
+		});
 
 		while (possibleValues.length > 0) {
 			let value = possibleValues.pop();
+
 			cell.setValue(value, true);
-			if (this.isValid())
+			if (cell.x == 2 && cell.y == 0)
+				console.log(cell.getValue());
+			
+			if (this.isValid()) {
+
+				if (cell.x == 2 && cell.y == 0)
+					console.log(`Value: ${value}`)
+
+				this.state.values.forEach(row => {
+					row.forEach(cell => {
+						cell.resetPossibleValues();
+					});
+				});
+
+				while (this.solveStep()) {}
+
+				if (!this.isValid()) {
+					// console.log("Not valid after logical steps...");
+					nullCells.forEach(nullCell => {
+						if (nullCell.getValue())
+							nullCell.setValue(null);
+					});
+					continue;
+				}
+
 				return true;
+			} else {
+				if (cell.x == 2 && cell.y == 0) {
+					console.log(this.state.values[2].map(elem => {
+						return elem.getValue();
+					}));
+					console.log(this.state.values.map(line => {
+						return line[0].getValue();
+					}))
+				}
+			}
 		}
 
 		cell.setValue(null, true);
+
+		nullCells.forEach(nullCell => {
+			if (nullCell.getValue())
+				nullCell.setValue(null);
+		});
+
 		return false;
 	}
 
@@ -267,6 +345,11 @@ export default class Game extends React.Component {
 	eliminateChoices(line) {
 		let change = false;
 
+		line.forEach(cell => {
+			if (cell.getValue())
+				cell.resetPossibleValues();
+		});
+
 		// Set cells that only have a single possibility
 		for (let cellIndex in line) {
 			let cell = line[cellIndex];
@@ -323,6 +406,19 @@ export default class Game extends React.Component {
 				...this.getGroupsAsLines()];
 	}
 
+	getNullCells() {
+		let nullCells = [];
+
+		this.state.values.forEach(row => {
+			row.forEach(cell => {
+				if (!cell.getValue())
+					nullCells.push(cell);
+			});
+		});
+
+		return nullCells;
+	}
+
 	dfsPromise() {
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
@@ -332,10 +428,13 @@ export default class Game extends React.Component {
 					if (this.dfsStep())
 						this.dfsStack.push({
 							cell: this.getFirstEmptyCell(),
-							possibleValues: [...POSSIBLE_VALUES]
+							possibleValues: [...POSSIBLE_VALUES],
+							nullCells: this.getNullCells()
 						});
 					else
-						this.dfsStack.pop();
+						this.dfsStack.pop().nullCells.forEach(cell => {
+							cell.setValue(null, true);
+						});
 
 					if (this.dfsStack.length == 0)
 						reject('Unsolvable!');
@@ -370,7 +469,8 @@ export default class Game extends React.Component {
 				case 'dfs':
 					this.dfsStack = [{
 						cell: this.getFirstEmptyCell(),
-						possibleValues: [...POSSIBLE_VALUES]
+						possibleValues: [...POSSIBLE_VALUES],
+						nullCells: this.getNullCells()
 					}];
 					return this.dfsPromise();
 				default:
@@ -388,14 +488,6 @@ export default class Game extends React.Component {
 			console.error(err);
 			throw err;
 		});
-
-		// if (this.isFinished() && this.isValid())
-		// 	return true;
-		// else
-		// 	if (this.solveStep())
-		// 		setTimeout(::this.solve, 0);
-		// 	else
-		// 		setTimeout(::this.dfs, 0);
 	}
 
 	solveStep() {

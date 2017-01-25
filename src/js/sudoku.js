@@ -73,4 +73,4 @@ function reducer(state=defaultState, action) {
 	}
 };
 
-ReactDOM.render(<Game store={createStore(reducer)} values={easyValues}/>, document.getElementById('main'));
+ReactDOM.render(<Game store={createStore(reducer)} values={elevenStarValues}/>, document.getElementById('main'));

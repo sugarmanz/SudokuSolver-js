@@ -70,6 +70,10 @@ ol, ul {
   display: inline-block;
 }
 
+.cell-error {
+  background: red;
+}
+
 #main {
   display: flex;
   justify-content: center;
