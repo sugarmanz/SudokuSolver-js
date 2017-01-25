@@ -16,9 +16,9 @@ export default class Group extends React.Component {
 
 		return (
 			<div className="group-row">
-				<Cell onCellClick={this.props.onCellClick} selectedCell={this.props.selectedCell} error={this.props.values[x][y].getError()} value={this.props.values[x][y]} x={x++} y={y}/>
-				<Cell onCellClick={this.props.onCellClick} selectedCell={this.props.selectedCell} error={this.props.values[x][y].getError()} value={this.props.values[x][y]} x={x++} y={y}/>
-				<Cell onCellClick={this.props.onCellClick} selectedCell={this.props.selectedCell} error={this.props.values[x][y].getError()} value={this.props.values[x][y]} x={x++} y={y}/>
+				<Cell onCellClick={this.props.onCellClick} selectedCell={this.props.selectedCell} error={this.props.values[y][x].getError()} value={this.props.values[y][x]} x={x++} y={y}/>
+				<Cell onCellClick={this.props.onCellClick} selectedCell={this.props.selectedCell} error={this.props.values[y][x].getError()} value={this.props.values[y][x]} x={x++} y={y}/>
+				<Cell onCellClick={this.props.onCellClick} selectedCell={this.props.selectedCell} error={this.props.values[y][x].getError()} value={this.props.values[y][x]} x={x++} y={y}/>
 			</div>
 		);
 	}

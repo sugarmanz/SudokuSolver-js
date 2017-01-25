@@ -17,7 +17,7 @@ class Cell {
 	setValue(value=this.possibleValues[0], force=false) {
 		if (this.value == value)
 			return false;
-		// console.log(`Changing value ${this.value} to ${value}`);
+
 		if (typeof(value) === 'string')
 			value = parseInt(value);
 
@@ -89,16 +89,11 @@ export default class Game extends React.Component {
 	}
 
 	initialize() {
-		let count = 0;
-		let values = new Array(9).fill(null);
-		for (let i in values) {
-			values[i] = new Array(9).fill(null);
-			for (let j in values[i]) {
-				let y = Math.floor(count / 9);
-				let x = count++ % 9;
-				values[y][x] = new Cell(y, x, this.props.values[x][y], this.props.store.dispatch);
-			}
-		}
+		let values = this.props.values.map((row, y) => {
+			return row.map((cellValue, x) => {
+				return new Cell(x, y, cellValue, this.props.store.dispatch);	
+			});
+		});
 
 		return values;
 	}
@@ -110,12 +105,10 @@ export default class Game extends React.Component {
 	}
 
 	getFirstEmptyCell() {
-		for (let y in this.state.values) {
-			for (let x in this.state.values[y]) {
-				if (!this.state.values[x][y].getValue())
-					return this.state.values[x][y];
-			}
-		}
+		for (let row of this.state.values)
+			for (let cell of row)
+				if (!cell.getValue())
+					return cell;
 		return null;
 	}
 
@@ -167,21 +160,18 @@ export default class Game extends React.Component {
 		let groupsAsLine = [];
 		let groups = this.getGroups();
 
-		for (let groupIndex in groups)
-			groupsAsLine.push([].concat(...groups[groupIndex]));
+		for (let group of groups)
+			groupsAsLine.push([].concat(...group));
 
 		return groupsAsLine;
 	}
 
 	isLineValid(line) {
-		for (let valIndex in POSSIBLE_VALUES)
-			if (line.count(POSSIBLE_VALUES[valIndex], (x) => x.getValue()) > 1) {
+		for (let value of POSSIBLE_VALUES)
+			if (line.count(value, (x) => x.getValue()) > 1) {
 				line.forEach((cell) => {
 					cell.setError(true);
 				});
-				// console.log(line.map(cell => {
-				// 	return cell.getValue();
-				// }));
 				return false;
 			}
 
@@ -194,11 +184,10 @@ export default class Game extends React.Component {
 
 	isValid() {
 		let lines = [...this.getColumns(), ...this.getRows(), ...this.getGroupsAsLines()];
-		for (let i in lines)
-			if (!this.isLineValid(lines[i]))
+		for (let line of lines)
+			if (!this.isLineValid(line))
 				return false;
 
-		// console.log("Valid");
 		return true;
 	}
 
@@ -206,71 +195,45 @@ export default class Game extends React.Component {
 		return !this.getFirstEmptyCell();
 	}
 
+	resetPossibleValues() {
+		for (let row of this.state.values)
+			for (let cell of row)
+				cell.resetPossibleValues();
+	}
+
 	dfsStep() {
 		let {cell, possibleValues, nullCells} = this.dfsStack[this.dfsStack.length - 1];
-		if (!this.isValid()) {
-			nullCells.forEach(nullCell => {
-				if (nullCell.getValue())
-					nullCell.setValue(null);
-			});
-			return false;
-		}
-		if (!cell) 
-			return false;
+		let needToClearNullCells = true;
 
-		nullCells.forEach(nullCell => {
-			if (nullCell.getValue())
-				nullCell.setValue(null);
-		});
+		if (!this.isValid() || !cell)
+			return false;
 
 		while (possibleValues.length > 0) {
-			let value = possibleValues.pop();
+			let value = (Math.random() >= 0.5 ? possibleValues.shift() : possibleValues.pop());
+
+			if (needToClearNullCells) {
+				for (let nullCell of nullCells)
+					if (nullCell.getValue())
+						nullCell.setValue(null);
+				needToClearNullCells = false;
+			}
 
 			cell.setValue(value, true);
-			if (cell.x == 2 && cell.y == 0)
-				console.log(cell.getValue());
-			
+
 			if (this.isValid()) {
 
-				if (cell.x == 2 && cell.y == 0)
-					console.log(`Value: ${value}`)
-
-				this.state.values.forEach(row => {
-					row.forEach(cell => {
-						cell.resetPossibleValues();
-					});
-				});
+				this.resetPossibleValues();
 
 				while (this.solveStep()) {}
 
 				if (!this.isValid()) {
-					// console.log("Not valid after logical steps...");
-					nullCells.forEach(nullCell => {
-						if (nullCell.getValue())
-							nullCell.setValue(null);
-					});
+					needToClearNullCells = true;
 					continue;
 				}
 
 				return true;
-			} else {
-				if (cell.x == 2 && cell.y == 0) {
-					console.log(this.state.values[2].map(elem => {
-						return elem.getValue();
-					}));
-					console.log(this.state.values.map(line => {
-						return line[0].getValue();
-					}))
-				}
 			}
 		}
-
-		cell.setValue(null, true);
-
-		nullCells.forEach(nullCell => {
-			if (nullCell.getValue())
-				nullCell.setValue(null);
-		});
 
 		return false;
 	}
@@ -345,57 +308,38 @@ export default class Game extends React.Component {
 	eliminateChoices(line) {
 		let change = false;
 
-		line.forEach(cell => {
-			if (cell.getValue())
-				cell.resetPossibleValues();
-		});
-
 		// Set cells that only have a single possibility
-		for (let cellIndex in line) {
-			let cell = line[cellIndex];
+		for (let cell of line)
 			if (cell.getPossibleValues().length == 1)
 				change |= cell.setValue();
-		}
 
 		// Find all values set in the current line/group
 		let lineValues = [];
-		for (let cellIndex in line) {
-			let cell = line[cellIndex];
+		for (let cell of line)
 			if (cell.getValue())
 				lineValues.push(cell.getValue());
-		}
 
 		// Remove all the values found in the line/group from the possible values
-		for (let cellIndex in line) {
-			let cell = line[cellIndex];
-			for (let valueIndex in lineValues)
-				change |= cell.removePossibleValue(lineValues[valueIndex]);
-		}
+		for (let cell of line)
+			for (let value of lineValues)
+				change |= cell.removePossibleValue(value);
 
 		// Get a count for all the possible values in the current line/group
 		let possibleCount = new Array(9).fill(0);
-		for (let cellIndex in line) {
-			let possibleValues = line[cellIndex].getPossibleValues();
-			for (let possibleIndex in possibleValues) {
-				possibleCount[possibleValues[possibleIndex]]++;
-			}
-		}
+		for (let cell of line)
+			for (let possibleValue of cell.getPossibleValues())
+				possibleCount[possibleValue]++;
 
 		// Determine if any of those possiblities occur only once
 		let singles = [];
-		for (let possibleIndex in possibleCount) {
+		for (let possibleIndex in possibleCount)
 			if (possibleCount[possibleIndex] == 1)
 				singles.push(possibleIndex);
-		}
 
 		// For all possibilities that occur only once in the line/group, set the value
-		for (let cellIndex in line) {
-			let cell = line[cellIndex];
-			for (let possibleIndex in singles) {
-				let value = singles[possibleIndex];
-				change |= cell.setValue(value); // Note: the cell will only set if it is included in the possible values
-			}
-		}
+		for (let cell of line)
+			for (let value of singles)
+				change |= cell.setValue(value);
 
 		return change;
 	}
@@ -409,12 +353,10 @@ export default class Game extends React.Component {
 	getNullCells() {
 		let nullCells = [];
 
-		this.state.values.forEach(row => {
-			row.forEach(cell => {
+		for (let row of this.state.values)
+			for (let cell of row)
 				if (!cell.getValue())
 					nullCells.push(cell);
-			});
-		});
 
 		return nullCells;
 	}
@@ -432,9 +374,9 @@ export default class Game extends React.Component {
 							nullCells: this.getNullCells()
 						});
 					else
-						this.dfsStack.pop().nullCells.forEach(cell => {
-							cell.setValue(null, true);
-						});
+						for (let nullCell of this.dfsStack.pop().nullCells)
+							if (nullCell.getValue())
+								nullCell.setValue(null);
 
 					if (this.dfsStack.length == 0)
 						reject('Unsolvable!');
@@ -494,8 +436,8 @@ export default class Game extends React.Component {
 		let changed = false;
 
 		let lines = this.getAllLinesAndGroupsAsLines();
-		for (let lineIndex in lines)
-			changed |= this.eliminateChoices(lines[lineIndex]);
+		for (let line of lines)
+			changed |= this.eliminateChoices(line);
 
 		return changed;
 	}
