@@ -224,7 +224,7 @@ export default class Game extends React.Component {
 			return false;
 
 		while (possibleValues.length > 0) {
-			let value = (Math.random() >= 0.5 ? possibleValues.shift() : possibleValues.shift());
+			let value = (Math.random() >= 0.5 ? possibleValues.pop() : possibleValues.shift());
 
 			cell.setValue(value, true);
 
