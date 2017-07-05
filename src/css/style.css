@@ -74,6 +74,11 @@ ol, ul {
   background: red;
 }
 
+.puzzle-select {
+  margin: 10px;
+  width: calc(100% - 20px);
+}
+
 #main {
   display: flex;
   justify-content: center;

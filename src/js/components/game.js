@@ -88,8 +88,8 @@ export default class Game extends React.Component {
 		}
 	}
 
-	initialize() {
-		let values = this.props.values.map((row, y) => {
+	initialize(initialValues=this.props.values) {
+		let values = initialValues.map((row, y) => {
 			return row.map((cellValue, x) => {
 				return new Cell(x, y, cellValue, this.props.store.dispatch);	
 			});
@@ -232,68 +232,6 @@ export default class Game extends React.Component {
 				return true;
 		}
 
-		return false;
-	}
-
-	dfs() {
-		this.dfsCount++;
-		
-		// console.log("Call");
-		// Check for completed, valid board
-		if (!this.isValid())// && !console.log("Not valid"))
-			return false;
-		else if (this.isFinished() && !console.log("Finished"))
-			return true;
-
-		// Find all null cells (to revert if failure)
-		let nullCells = []
-		// for (let i in this.state.values)
-		// 	for (let j in this.state.values)
-		// 		if (this.state.values[i][j].getValue() == null)
-		// 			nullCells.push(this.state.values[i][j]);
-
-		// // Try logic
-		// for (let i in this.state.values)
-		// 	for (let j in this.state.values[i])
-		// 		this.state.values[i][j].possibleValues = [...POSSIBLE_VALUES];
-		// while (this.solveStep()) {}
-
-		// Check completion again
-		if (this.isFinished() && !console.log("Finished"))
-			return true;
-
-		// Get first empty cell
-		let emptyCell = this.getFirstEmptyCell();
-		console.log(`Trying cell: ${emptyCell.x}, ${emptyCell.y}`)
-		// Loop through possible values for the 'first empty cell'
-		let possibleValues = [...POSSIBLE_VALUES];
-		while (possibleValues.length > 0) {
-
-			// Call dfs on new values
-			let value = possibleValues.pop();
-
-			console.log(`Trying value: ${value}`);
-			if (!emptyCell.setValue(value, true))
-				continue;
-
-			// If success, return success\
-			if (this.dfs())
-				return true;
-			else
-				emptyCell.setValue(null);
-		}
-
-		// Undo
-		while (nullCells.length > 0)
-			nullCells.pop().setValue(null);
-		// emptyCell.setValue(null);
-		// this.props.store.dispatch({
-		// 	type: 'undo',
-		// 	values: copy.values
-		// });
-
-		// Return failure
-		// console.log("Exhausted values...");
 		return false;
 	}
 
@@ -463,14 +401,14 @@ export default class Game extends React.Component {
 		setTimeout(() => {
 			this.solve().then((resp) => {
 				this.solveButton.innerHTML = resp;
-				this.solveButton.style.backgroudColor = 'green';
+				this.solveButton.style.backgroundColor = 'green';
 			}, (err) => {
 				this.solveButton.innerHTML = err;
-				this.solveButton.style.backgroudColor = 'red';
+				this.solveButton.style.backgroundColor = 'red';
 			}).then(() => {
 				console.info(`Time: ${(performance.now() - start) / 1000} seconds`);
 			});
-		}, 100);
+		}, 0);
 		// setTimeout(() => {
 		// 	this.solveButton.innerHTML = 'Solving...';
 		// 	console.info("Starting logical solve.");
@@ -514,14 +452,54 @@ export default class Game extends React.Component {
 		});
 	}
 
+	onSaveClick() {
+		let name = prompt("Puzzle name: ", `puzzle${Math.round(performance.now())}`);
+		let values = this.state.values.map(row => {
+			return row.map(cell => {
+				return cell.getValue();
+			});
+		});
+
+		localStorage.setItem(name + '.puzzle', JSON.stringify(values));
+	}
+
+	renderOptions() {
+		let options = [];
+		for (let name in localStorage)
+			if (name.slice(name.lastIndexOf('.')) === '.puzzle')
+				options.push(<option value={name}>{name}</option>);
+
+		return options;
+	}
+
+	onPuzzleChange(event) {
+		console.log(event.target.value);
+
+		// let values = localStorage.getItem(event.target.value);
+		// this.initialize(JSON.parse(values));
+	}
+
+	onLoadClick() {
+		let name = this.puzzleSelect.value;
+		this.props.store.dispatch({
+			type: 'loadcells',
+			cells: this.initialize(JSON.parse(localStorage.getItem(name)))
+		});
+	}
+
 	render() {
 		return (
 			<div className="game">
+				<select className="puzzle-select" ref={(select) => {this.puzzleSelect = select;}} onchange={::this.onPuzzleChange}>
+					{this.renderOptions()}
+				</select>
 				<div className="game-board">
 					<Board values={this.state.values} onCellClick={::this.onCellClick} selectedCell={this.getSelectedCell()}/>
 				</div>
 				<button className="reset-button" onClick={::this.onResetClick} ref={(button) => {this.resetButton = button;}}>Reset</button>
 				<button className="solve-button" onClick={::this.onSolveClick} ref={(button) => {this.solveButton = button;}}>Solve</button>
+				<button className="solve-button" onClick={::this.onSaveClick} ref={(button) => {this.saveButton = button;}}>Save</button>
+				<button className="solve-button" onClick={::this.onLoadClick} ref={(button) => {this.loadButton = button;}}>Load</button>
 			</div>
 		);
 	}

@@ -51,6 +51,18 @@ const elevenStarValues = [
 	[null, 9,    null, null, null, null, 4,    null, null]
 ];
 
+const alaskanHard = [
+	[2, null, null, 3, null, null, 1, null, 4],
+	[4, null, null, null, null, null, null, 3, null],
+	[null, 7, null, 4, 1, null, 2, null, null],
+	[9, null, null, null, null, 3, 8, 1, null],
+	[null, 4, null, 9, null, 6, null, 2, null],
+	[null, 6, 8, 2, null, null, null, null, 9],
+	[null, null, 2, null, 5, 4, null, 7, null],
+	[null, 8, null, null, null, null, null, null, 1],
+	[1, null, 5, null, null, 8, null, null, 2]
+];
+
 const defaultState = {
 	values: defaultValues,
 	selectedCell: null
@@ -58,6 +70,10 @@ const defaultState = {
 
 function reducer(state=defaultState, action) {
 	switch (action.type) {
+		case 'loadcells':
+			return {
+				values: action.cells
+			};
 		case 'updatecells':
 			return {};
 		case 'cellselected':
@@ -73,4 +89,4 @@ function reducer(state=defaultState, action) {
 	}
 };
 
-ReactDOM.render(<Game store={createStore(reducer)} values={elevenStarValues}/>, document.getElementById('main'));
+ReactDOM.render(<Game store={createStore(reducer)} values={alaskanHard}/>, document.getElementById('main'));

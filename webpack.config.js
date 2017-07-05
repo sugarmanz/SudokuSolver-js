@@ -1,9 +1,7 @@
 let HTMLWebpackPlugin = require('html-webpack-plugin');
-let ExtractTextPlugin = require('extract-text-webpack-plugin')
+let ExtractTextPlugin = require('extract-text-webpack-plugin');
 
-let htmlPlugin = new HTMLWebpackPlugin({
-	template: './src/index.html'
-});
+let htmlPlugin = new HTMLWebpackPlugin({template: './src/index.html'});
 let extractCSS = new ExtractTextPlugin('./src/css/[name].css');
 
 module.exports = {
